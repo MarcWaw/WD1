@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import tqdm
+from sklearn import preprocessing
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
@@ -35,6 +36,9 @@ result = [0 for i in range(len(estimators))]
 #Wypełnienie pustych rekordów średnimi
 X.fillna(X.mean(), inplace=True)
 
+min_max_scaler = preprocessing.MinMaxScaler()
+
+
 times_cross_validation = 10
 #Walidacja krzyżowa
 kf = KFold(n_splits=times_cross_validation, shuffle=True, random_state=1410)
@@ -42,8 +46,16 @@ for train_index, test_index in tqdm.tqdm(kf.split(X)):
     X_train, X_test = X.iloc[train_index], X.iloc[test_index]
     y_train, y_test = y.iloc[train_index], y.iloc[test_index]
 
-    #Iteracja po algorytmach uczących
-    for i in range(len(estimators)):
+#Wykonanie predykcji dla algorytmu Drzew, który nie wymaga skalowania danych
+    clf = BaggingClassifier(base_estimator=estimators[0], n_estimators=10, random_state=0).fit(X_train, y_train.values.ravel())
+    predict = clf.predict(X_test)
+    result[0] += accuracy_score(y_test, predict)
+
+#Skalowanie danych, żeby wszytskie wartości znajdowały się w zakresie (0, 1)
+    X_train = min_max_scaler.fit_transform(X_train)
+    X_test = min_max_scaler.fit_transform(X_test)
+    #Iteracja po pozostałych algorytmach uczących
+    for i in range(1, len(estimators)):
         clf = BaggingClassifier(base_estimator=estimators[i], n_estimators=10, random_state=0).fit(X_train, y_train.values.ravel())
         predict = clf.predict(X_test)
         result[i] += accuracy_score(y_test, predict)
