@@ -9,7 +9,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import KFold
 from sklearn.ensemble import BaggingClassifier
 from sklearn.metrics import accuracy_score
-
+from imblearn.over_sampling import RandomOverSampler
+from imblearn.over_sampling import SMOTE
 
 data = pd.read_csv('Data\cumulative.csv')
 X = data.drop(columns=['kepid', 'kepoi_name', 'kepler_name', 'koi_disposition', 'koi_pdisposition', 'koi_score', 'koi_fpflag_nt',
@@ -35,12 +36,16 @@ result = [0 for i in range(len(estimators))]
 #Wypełnienie pustych rekordów średnimi
 X.fillna(X.mean(), inplace=True)
 
+#Balansowanie zbioru przy użyciu metody SMOTE - Synthetic Minority Over-sampling Technique z biblioteki imblearn
+sm = SMOTE(random_state=1410)
+X_resampled, y_resampled = sm.fit_resample(X, y)
+
 times_cross_validation = 10
 #Walidacja krzyżowa
 kf = KFold(n_splits=times_cross_validation, shuffle=True, random_state=1410)
-for train_index, test_index in tqdm.tqdm(kf.split(X)):
-    X_train, X_test = X.iloc[train_index], X.iloc[test_index]
-    y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+for train_index, test_index in tqdm.tqdm(kf.split(X_resampled)):
+    X_train, X_test = X_resampled.iloc[train_index], X_resampled.iloc[test_index]
+    y_train, y_test = y_resampled.iloc[train_index], y_resampled.iloc[test_index]
 
     #Iteracja po algorytmach uczących
     for i in range(len(estimators)):
@@ -50,4 +55,3 @@ for train_index, test_index in tqdm.tqdm(kf.split(X)):
 
 for i in range(len(estimators)):
     print(f'{names[i]} {result[i]/times_cross_validation}')
-
