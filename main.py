@@ -1,7 +1,9 @@
 import pandas as pd
 import tqdm
-import matplotlib.pyplot as plt
-import RadarChart
+
+import plotly.graph_objects as go
+import plotly.offline as pyo
+import numpy as np
 from sklearn import preprocessing
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import SVC
@@ -13,8 +15,8 @@ from sklearn.ensemble import BaggingClassifier
 from sklearn.metrics import accuracy_score
 from imblearn.over_sampling import SMOTE
 
-data = pd.read_csv('Data\ezgo.csv')
-X = data.drop(columns=['koi_disposition'])
+dataset = pd.read_csv('Data\ezgo.csv')
+X = dataset.drop(columns=['koi_disposition'])
 # .drop(
 # columns=['rowid', 'kepid', 'kepoi_name', 'kepler_name', 'koi_disposition', 'koi_pdisposition', 'koi_score', 'koi_fpflag_nt',
 #          'koi_fpflag_ss', 'koi_fpflag_co', 'koi_fpflag_ec', 'koi_tce_delivname', 'koi_teq_err1', 'koi_teq_err2'])
@@ -23,7 +25,7 @@ X = data.drop(columns=['koi_disposition'])
 
 # Zamiana etykiety na wartość binarną, jak się po prostu zamieni CONFIRMED na True to wywala błąd, bo wcześniej był to
 # string. Dlatego trochę więcej kodu jest
-y_string = data['koi_disposition']
+y_string = dataset['koi_disposition']
 y_list = []
 for classification in y_string:
     if classification == 'CONFIRMED':
@@ -47,7 +49,7 @@ X_resampled, y_resampled = sm.fit_resample(X, y)
 min_max_scaler = preprocessing.MinMaxScaler()
 
 # Krotność walidacji krzyżowej
-times_cross_validation = 5
+times_cross_validation = 2
 
 # Walidacja krzyżowa
 kf = KFold(n_splits=times_cross_validation, shuffle=True, random_state=1410)
@@ -82,8 +84,6 @@ for train_index, test_index in tqdm.tqdm(kf.split(X_resampled)):
 
 # Wyświetlanie wyników
 metric_names = ['Accuracy', 'Precision', 'Recall', 'F1']
-# N = len(metric_names)
-# theta = RadarChart.radar_factory(N, frame='polygon')
 
 j = 0
 for metric in [result_accuracy, result_precision, result_recall, result_f1]:
@@ -92,21 +92,27 @@ for metric in [result_accuracy, result_precision, result_recall, result_f1]:
         print(f'{names[i]} {metric[i] / times_cross_validation}')
     j += 1
 
-# fig, axs = plt.subplots(subplot_kw=dict(projection='radar'))
-# colors = ['b', 'r', 'g', 'm', 'y']
+# Wyświetlanie wykresu
+for i in range(len(estimators)):
+    result_accuracy[i] = result_accuracy[i] / times_cross_validation
+    result_precision[i] = result_precision[i] / times_cross_validation
+    result_recall[i] = result_recall[i] / times_cross_validation
+    result_f1[i] = result_f1[i] / times_cross_validation
 
-# Plot the four cases from the example data on separate axes
-# for ax, (title, case_data) in zip(axs.flat, data):
-#     ax.set_rgrids([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
-#     ax.set_title(title, weight='bold', size='medium', position=(0.5, 1.1),
-#                  horizontalalignment='center', verticalalignment='center')
-#     for d, color in zip(case_data, colors):
-#         ax.plot(theta, d, color=color)
-#         ax.fill(theta, d, facecolor=color, alpha=0.25)
-#     ax.set_varlabels(spoke_labels)
+plot_accuracy = [*result_accuracy, result_accuracy[0]]
+plot_precision = [*result_precision, result_precision[0]]
+plot_recall = [*result_recall, result_recall[0]]
+plot_f1 = [*result_f1, result_f1[0]]
+names = [*names, names[0]]
 
-# add legend relative to top-left plot
-# labels = ('Accuracy', 'Precision', 'Recall', 'F1')
-# legend = axs[0, 0].legend(labels, loc=(0.9, .95), labelspacing=0.1, fontsize='small')
-# fig.text(0.5, 0.965, 'Metryki', horizontalalignment='center', color='black', weight='bold', size='large')
-# plt.show()
+fig = go.Figure(data=[go.Scatterpolar(r=plot_accuracy, theta=names, name='Accuracy'),
+                      go.Scatterpolar(r=plot_precision, theta=names, name='Precision'),
+                      go.Scatterpolar(r=plot_recall, theta=names, name='Recall'),
+                      go.Scatterpolar(r=plot_f1, theta=names, name='F1')],
+                layout=go.Layout(title=go.layout.Title(text='Metrics comparison'),
+                                 polar={'radialaxis': {'visible': True}},
+                                 showlegend=True
+                                 )
+                )
+
+pyo.plot(fig)
