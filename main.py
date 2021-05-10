@@ -14,14 +14,24 @@ from sklearn.model_selection import KFold
 from sklearn.ensemble import BaggingClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from imblearn.over_sampling import SMOTE
+from sklearn.metrics import roc_curve
+import matplotlib.pyplot as plt
+
+#Plotowanie ROC
+def plot_roc_curve(fpr, tpr, label=None):
+    for i in range(len(label)):
+        plt.plot(fpr[i], tpr[i], linewidth=2, label=label[i])
+    plt.plot([0, 1], [0, 1], 'k--') #przekątna wykresu
+    plt.xlabel('Odsetek prawdziwie pozytywnych (pełność)')
+    plt.ylabel('Odsetek preawdziwie pozytywnych')
+    plt.legend()
 
 
 def prepare_input_data(remove_incomplete_rows=True):
     data = pd.read_csv('Data\cumulative.csv')
-    data = data.drop(
-        columns=['rowid', 'kepid', 'kepoi_name', 'kepler_name', 'koi_pdisposition', 'koi_score', 'koi_fpflag_nt',
-                 'koi_fpflag_ss', 'koi_fpflag_co', 'koi_fpflag_ec', 'koi_tce_delivname', 'koi_teq_err1',
-                 'koi_teq_err2']).copy()
+    data = data.drop(columns=['rowid', 'kepid', 'kepoi_name', 'kepler_name', 'koi_pdisposition', 'koi_score',
+                              'koi_fpflag_nt', 'koi_fpflag_ss', 'koi_fpflag_co', 'koi_fpflag_ec', 'koi_tce_delivname',
+                              'koi_teq_err1', 'koi_teq_err2']).copy()
 
     if remove_incomplete_rows is True:
         data.dropna(inplace=True)
@@ -61,7 +71,11 @@ class estimator():
         self.Name = name
 
 
-def make_predictions(new_estimators, times_cross_validation, precision_scores):
+def make_predictions(estimators, times_cross_validation):
+
+    precision_scores = []
+    for i in range(len(metric_names)):
+        precision_scores.append(np.zeros((times_cross_validation, len(estimators))))
 
     # Balansowanie zbioru przy użyciu metody SMOTE - Synthetic Minority Over-sampling Technique z biblioteki imblearn
     sm = SMOTE(random_state=1410)
@@ -80,9 +94,11 @@ def make_predictions(new_estimators, times_cross_validation, precision_scores):
         X_train, X_test = X_resampled.iloc[train_index], X_resampled.iloc[test_index]
         y_train, y_test = y_resampled.iloc[train_index], y_resampled.iloc[test_index]
         # -----------------------------------------------------------------------------------------------------------------
-
+        #Tablice do krzywych ROC
+        fpr_array = []
+        tpr_array = []
         estimator_index = 0
-        for est in new_estimators:
+        for est in estimators:
             if est.Oversample:
                 X_train, X_test = X_resampled.iloc[train_index], X_resampled.iloc[test_index]
                 y_train, y_test = y_resampled.iloc[train_index], y_resampled.iloc[test_index]
@@ -97,13 +113,24 @@ def make_predictions(new_estimators, times_cross_validation, precision_scores):
             clf = BaggingClassifier(base_estimator=est.Estimator, n_estimators=10, random_state=0).fit(
                 X_train, y_train.values.ravel())
             prediction = clf.predict(X_test)
+            prediction_roc = clf.predict_proba(X_test) #Predict do ROC
             # Zapisywanie wyników metryk
             precision_scores[0][iterator][estimator_index] = accuracy_score(y_test, prediction)
             precision_scores[1][iterator][estimator_index] = precision_score(y_test, prediction)
             precision_scores[2][iterator][estimator_index] = recall_score(y_test, prediction)
             precision_scores[3][iterator][estimator_index] = f1_score(y_test, prediction)
+            # ROC
+            fpr, tpr, treshold = roc_curve(y_test, prediction_roc[:, 1])
+            fpr_array.append(fpr)
+            tpr_array.append(tpr)
+
             estimator_index += 1
         # -----------------------------------------------------------------------------------------------------------------
+        #Stworzenie plotów ROC
+        plot_roc_curve(fpr_array, tpr_array, names)
+        plt.savefig(f'ROC_plots/ROC_fold{iterator + 1}.png')
+        plt.clf()
+
         iterator += 1
     return precision_scores
 
@@ -152,16 +179,12 @@ estimators = [estimator(DecisionTreeClassifier(), False, True, 'Drzewa Decyzyjne
               estimator(LogisticRegression(solver='lbfgs', max_iter=1000), True, True, 'Regresja logistyczna')]
 
 metric_names = ['Accuracy', 'Precision', 'Recall', 'F1']
-times_cross_validation = 10
+times_cross_validation = 2
 
 names = []
 for est in estimators:
     names.append(est.Name)
 
-precision_scores = []
-for i in range(len(metric_names)):
-    precision_scores.append(np.zeros((times_cross_validation, len(estimators))))
+precision_scores = make_predictions(estimators, times_cross_validation)
 
-precision_scores = make_predictions(estimators, times_cross_validation, precision_scores).copy()
-
-show_results(precision_scores, names)
+show_results()
