@@ -25,6 +25,7 @@ X = dataset.drop(columns=['koi_disposition'])
 
 # Zamiana etykiety na wartość binarną, jak się po prostu zamieni CONFIRMED na True to wywala błąd, bo wcześniej był to
 # string. Dlatego trochę więcej kodu jest
+# ---------------------------------------------------------------------------------------------------------------------
 y_string = dataset['koi_disposition']
 y_list = []
 for classification in y_string:
@@ -33,7 +34,7 @@ for classification in y_string:
     else:
         y_list.append(False)
 y = pd.DataFrame(y_list, columns=['koi_disposition'])
-
+# ---------------------------------------------------------------------------------------------------------------------
 estimators = [DecisionTreeClassifier(), SVC(), KNeighborsClassifier(), GaussianNB(),
               LogisticRegression(solver='lbfgs', max_iter=1000)]
 
@@ -52,20 +53,22 @@ min_max_scaler = preprocessing.MinMaxScaler()
 
 # Krotność walidacji krzyżowej
 times_cross_validation = 10
-
+# ---------------------------------------------------------------------------------------------------------------------
+# Deklaracja macierzy wyników
 results_accuracy = np.zeros((times_cross_validation, len(estimators)))
 results_precision = np.zeros((times_cross_validation, len(estimators)))
 results_recall = np.zeros((times_cross_validation, len(estimators)))
 results_f1 = np.zeros((times_cross_validation, len(estimators)))
-
+# ---------------------------------------------------------------------------------------------------------------------
 # Walidacja krzyżowa
 kf = KFold(n_splits=times_cross_validation, shuffle=True, random_state=1410)
-
+# ---------------------------------------------------------------------------------------------------------------------
 iterator = 0
 #                    [T    , SVM  , kNN  , NB   , LR  ]
 normalization_flag = [False, False, False, False, True]
 oversampling_flag = [True, True, True, True, True]
-
+# ---------------------------------------------------------------------------------------------------------------------
+# Główna pętla
 for train_index, test_index in tqdm.tqdm(kf.split(X_resampled)):
     X_train, X_test = X_resampled.iloc[train_index], X_resampled.iloc[test_index]
     y_train, y_test = y_resampled.iloc[train_index], y_resampled.iloc[test_index]
@@ -93,36 +96,33 @@ for train_index, test_index in tqdm.tqdm(kf.split(X_resampled)):
         results_f1[iterator][i] = f1_score(y_test, prediction)
     # -----------------------------------------------------------------------------------------------------------------
     iterator += 1
-
+# ---------------------------------------------------------------------------------------------------------------------
 # Wyświetl macierze wyników
 # j = 0
 # for metric in [results_accuracy, results_precision, results_recall, results_f1]:
 #     print('\nMacierz metryki ' + metric_names[j])
 #     print(metric)
 #     j += 1
-
+# ---------------------------------------------------------------------------------------------------------------------
 # Wyświetlanie wyników
 mean_accuracy = results_accuracy.mean(0)
 mean_precision = results_precision.mean(0)
 mean_recall = results_recall.mean(0)
 mean_f1 = results_f1.mean(0)
-
 j = 0
 for metric in [mean_accuracy, mean_precision, mean_recall, mean_f1]:
     print('\nMetryka: ' + metric_names[j])
     for i in range(len(estimators)):
         print(names[i] + ": " + str(format(metric[i] * 100, '.1f')))
     j += 1
-
+# ---------------------------------------------------------------------------------------------------------------------
 # Wyświetlanie wykresu
-
 plot_tree_results = [mean_accuracy[0], mean_precision[0], mean_recall[0], mean_f1[0], mean_accuracy[0]]
 plot_svm = [mean_accuracy[1], mean_precision[1], mean_recall[1], mean_f1[1], mean_accuracy[1]]
 plot_knn = [mean_accuracy[2], mean_precision[2], mean_recall[2], mean_f1[2], mean_accuracy[2]]
 plot_nb = [mean_accuracy[3], mean_precision[3], mean_recall[3], mean_f1[3], mean_accuracy[3]]
 plot_lr = [mean_accuracy[4], mean_precision[4], mean_recall[4], mean_f1[4], mean_accuracy[4]]
 plot_names = [*metric_names, metric_names[0]]
-
 
 fig = go.Figure(data=[go.Scatterpolar(r=plot_tree_results, theta=plot_names, name='Drzewo decyzyjne'),
                       go.Scatterpolar(r=plot_svm, theta=plot_names, name='SVM'),
@@ -134,5 +134,5 @@ fig = go.Figure(data=[go.Scatterpolar(r=plot_tree_results, theta=plot_names, nam
                                  showlegend=True
                                  )
                 )
-
 pyo.plot(fig)
+# ---------------------------------------------------------------------------------------------------------------------
