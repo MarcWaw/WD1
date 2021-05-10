@@ -34,15 +34,11 @@ for classification in y_string:
         y_list.append(False)
 y = pd.DataFrame(y_list, columns=['koi_disposition'])
 
-# LogisticRegression() - wywala błędy póki co, może trzeba standaryzacje zrobić
 estimators = [DecisionTreeClassifier(), SVC(), KNeighborsClassifier(), GaussianNB(),
-              LogisticRegression(solver='lbfgs', max_iter=100000)]
-names = ['Drzewa Decyzyjne', 'SVM', 'kNN', 'Naiwny Bayes', 'Regresja logistyczna']
+              LogisticRegression(solver='lbfgs', max_iter=1000)]
 
-result_accuracy = [0 for i in range(len(estimators))]
-result_precision = [0 for i in range(len(estimators))]
-result_recall = [0 for i in range(len(estimators))]
-result_f1 = [0 for i in range(len(estimators))]
+names = ['Drzewa Decyzyjne', 'SVM', 'kNN', 'Naiwny Bayes', 'Regresja logistyczna']
+metric_names = ['Accuracy', 'Precision', 'Recall', 'F1']
 
 # Wypełnienie pustych rekordów średnimi
 # X.fillna(X.mean(), inplace=True)
@@ -50,66 +46,89 @@ result_f1 = [0 for i in range(len(estimators))]
 # Balansowanie zbioru przy użyciu metody SMOTE - Synthetic Minority Over-sampling Technique z biblioteki imblearn
 sm = SMOTE(random_state=1410)
 X_resampled, y_resampled = sm.fit_resample(X, y)
+
+# Skalowanie do normalizacji
 min_max_scaler = preprocessing.MinMaxScaler()
 
 # Krotność walidacji krzyżowej
-times_cross_validation = 10
+times_cross_validation = 2
+
+results_accuracy = np.zeros((times_cross_validation, len(estimators)))
+results_precision = np.zeros((times_cross_validation, len(estimators)))
+results_recall = np.zeros((times_cross_validation, len(estimators)))
+results_f1 = np.zeros((times_cross_validation, len(estimators)))
 
 # Walidacja krzyżowa
 kf = KFold(n_splits=times_cross_validation, shuffle=True, random_state=1410)
 
+iterator = 0
+#                    [T    , SVM  , kNN  , NB   , LR  ]
+normalization_flag = [False, False, False, False, True]
+oversampling_flag = [True, True, True, True, True]
+
 for train_index, test_index in tqdm.tqdm(kf.split(X_resampled)):
     X_train, X_test = X_resampled.iloc[train_index], X_resampled.iloc[test_index]
     y_train, y_test = y_resampled.iloc[train_index], y_resampled.iloc[test_index]
-
-    # Iteracja po algorytmach uczących
-    for i in range(len(estimators) - 1):
+    # -----------------------------------------------------------------------------------------------------------------
+    for i in range(len(estimators)):
+        # Czy wskazany jest oversampling?
+        if oversampling_flag[i]:
+            X_train, X_test = X_resampled.iloc[train_index], X_resampled.iloc[test_index]
+            y_train, y_test = y_resampled.iloc[train_index], y_resampled.iloc[test_index]
+        else:
+            X_train, X_test = X.iloc[train_index], X_resampled.iloc[test_index]
+            y_train, y_test = y.iloc[train_index], y_resampled.iloc[test_index]
+        # Czy występuje normalizacja parametrów?
+        if normalization_flag[i]:
+            X_train = min_max_scaler.fit_transform(X_train)
+            X_test = min_max_scaler.fit_transform(X_test)
+        # Iteracja przez estymatory
         clf = BaggingClassifier(base_estimator=estimators[i], n_estimators=10, random_state=0).fit(
             X_train, y_train.values.ravel())
         prediction = clf.predict(X_test)
-        result_accuracy[i] += accuracy_score(y_test, prediction)
-        result_precision[i] += precision_score(y_test, prediction)
-        result_recall[i] += recall_score(y_test, prediction)
-        result_f1[i] += f1_score(y_test, prediction)
+        # Zapisywanie wyników metryk
+        results_accuracy[iterator][i] = accuracy_score(y_test, prediction)
+        results_precision[iterator][i] = precision_score(y_test, prediction)
+        results_recall[iterator][i] = recall_score(y_test, prediction)
+        results_f1[iterator][i] = f1_score(y_test, prediction)
+    # -----------------------------------------------------------------------------------------------------------------
+    iterator += 1
 
-    X_train = min_max_scaler.fit_transform(X_train)
-    X_test = min_max_scaler.fit_transform(X_test)
-    clf = BaggingClassifier(base_estimator=estimators[-1], n_estimators=10, random_state=0).fit(
-        X_train, y_train.values.ravel())
-    prediction = clf.predict(X_test)
-    result_accuracy[-1] += accuracy_score(y_test, prediction)
-    result_precision[-1] += precision_score(y_test, prediction)
-    result_recall[-1] += recall_score(y_test, prediction)
-    result_f1[-1] += f1_score(y_test, prediction)
+# Wyświetl macierze wyników
+# j = 0
+# for metric in [results_accuracy, results_precision, results_recall, results_f1]:
+#     print('\nMacierz metryki ' + metric_names[j])
+#     print(metric)
+#     j += 1
 
 # Wyświetlanie wyników
-metric_names = ['Accuracy', 'Precision', 'Recall', 'F1']
+mean_accuracy = results_accuracy.mean(0)
+mean_precision = results_precision.mean(0)
+mean_recall = results_recall.mean(0)
+mean_f1 = results_f1.mean(0)
 
 j = 0
-for metric in [result_accuracy, result_precision, result_recall, result_f1]:
+for metric in [mean_accuracy, mean_precision, mean_recall, mean_f1]:
     print('\nMetryka: ' + metric_names[j])
     for i in range(len(estimators)):
-        print(f'{names[i]} {metric[i] / times_cross_validation}')
+        print(f'{names[i]} {metric[i]}')
     j += 1
 
 # Wyświetlanie wykresu
-for i in range(len(estimators)):
-    result_accuracy[i] = result_accuracy[i] / times_cross_validation
-    result_precision[i] = result_precision[i] / times_cross_validation
-    result_recall[i] = result_recall[i] / times_cross_validation
-    result_f1[i] = result_f1[i] / times_cross_validation
 
-plot_accuracy = [*result_accuracy, result_accuracy[0]]
-plot_precision = [*result_precision, result_precision[0]]
-plot_recall = [*result_recall, result_recall[0]]
-plot_f1 = [*result_f1, result_f1[0]]
-names = [*names, names[0]]
+plot_tree_results = [mean_accuracy[0], mean_precision[0], mean_recall[0], mean_f1[0], mean_accuracy[0]]
+plot_svm = [mean_accuracy[1], mean_precision[1], mean_recall[1], mean_f1[1], mean_accuracy[1]]
+plot_knn = [mean_accuracy[2], mean_precision[2], mean_recall[2], mean_f1[2], mean_accuracy[2]]
+plot_nb = [mean_accuracy[3], mean_precision[3], mean_recall[3], mean_f1[3], mean_accuracy[3]]
+plot_lr = [mean_accuracy[4], mean_precision[4], mean_recall[4], mean_f1[4], mean_accuracy[4]]
+plot_names = [*metric_names, metric_names[0]]
 
-fig = go.Figure(data=[go.Scatterpolar(r=plot_accuracy, theta=names, name='Accuracy'),
-                      go.Scatterpolar(r=plot_precision, theta=names, name='Precision'),
-                      go.Scatterpolar(r=plot_recall, theta=names, name='Recall'),
-                      go.Scatterpolar(r=plot_f1, theta=names, name='F1')],
-                layout=go.Layout(title=go.layout.Title(text='Metrics comparison'),
+fig = go.Figure(data=[go.Scatterpolar(r=plot_tree_results, theta=plot_names, name='Drzewo decyzyjne'),
+                      go.Scatterpolar(r=plot_svm, theta=plot_names, name='SVM'),
+                      go.Scatterpolar(r=plot_knn, theta=plot_names, name='kNN'),
+                      go.Scatterpolar(r=plot_nb, theta=plot_names, name='Naiwny Bayes'),
+                      go.Scatterpolar(r=plot_lr, theta=plot_names, name='Regresja Logistyczna')],
+                layout=go.Layout(title=go.layout.Title(text='Wyniki'),
                                  polar={'radialaxis': {'visible': True}},
                                  showlegend=True
                                  )
