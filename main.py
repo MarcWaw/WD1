@@ -12,7 +12,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import KFold
 from sklearn.ensemble import BaggingClassifier
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from imblearn.over_sampling import SMOTE
 
 dataset = pd.read_csv('Data\ezgo.csv')
@@ -38,10 +38,14 @@ y = pd.DataFrame(y_list, columns=['koi_disposition'])
 estimators = [DecisionTreeClassifier(), SVC(), KNeighborsClassifier(), GaussianNB(),
               LogisticRegression(solver='lbfgs', max_iter=100000)]
 names = ['Drzewa Decyzyjne', 'SVM', 'kNN', 'Naiwny Bayes', 'Regresja logistyczna']
-result = [0 for i in range(len(estimators))]
+
+result_accuracy = [0 for i in range(len(estimators))]
+result_precision = [0 for i in range(len(estimators))]
+result_recall = [0 for i in range(len(estimators))]
+result_f1 = [0 for i in range(len(estimators))]
 
 # Wypełnienie pustych rekordów średnimi
-X.fillna(X.mean(), inplace=True)
+# X.fillna(X.mean(), inplace=True)
 
 # Balansowanie zbioru przy użyciu metody SMOTE - Synthetic Minority Over-sampling Technique z biblioteki imblearn
 sm = SMOTE(random_state=1410)
@@ -49,7 +53,7 @@ X_resampled, y_resampled = sm.fit_resample(X, y)
 min_max_scaler = preprocessing.MinMaxScaler()
 
 # Krotność walidacji krzyżowej
-times_cross_validation = 2
+times_cross_validation = 10
 
 # Walidacja krzyżowa
 kf = KFold(n_splits=times_cross_validation, shuffle=True, random_state=1410)
@@ -58,12 +62,8 @@ for train_index, test_index in tqdm.tqdm(kf.split(X_resampled)):
     X_train, X_test = X_resampled.iloc[train_index], X_resampled.iloc[test_index]
     y_train, y_test = y_resampled.iloc[train_index], y_resampled.iloc[test_index]
 
-    # Skalowanie danych, żeby wszytskie wartości znajdowały się w zakresie (0, 1)
-    X_train = min_max_scaler.fit_transform(X_train)
-    X_test = min_max_scaler.fit_transform(X_test)
-
     # Iteracja po algorytmach uczących
-    for i in range(1, len(estimators)):
+    for i in range(len(estimators) - 1):
         clf = BaggingClassifier(base_estimator=estimators[i], n_estimators=10, random_state=0).fit(
             X_train, y_train.values.ravel())
         prediction = clf.predict(X_test)
