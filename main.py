@@ -164,4 +164,4 @@ for i in range(len(metric_names)):
 
 precision_scores = make_predictions(estimators, times_cross_validation, precision_scores).copy()
 
-show_results(precision_scores, names)
+show_results()
