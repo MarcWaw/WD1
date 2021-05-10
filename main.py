@@ -51,7 +51,7 @@ X_resampled, y_resampled = sm.fit_resample(X, y)
 min_max_scaler = preprocessing.MinMaxScaler()
 
 # Krotność walidacji krzyżowej
-times_cross_validation = 2
+times_cross_validation = 10
 
 results_accuracy = np.zeros((times_cross_validation, len(estimators)))
 results_precision = np.zeros((times_cross_validation, len(estimators)))
@@ -111,7 +111,7 @@ j = 0
 for metric in [mean_accuracy, mean_precision, mean_recall, mean_f1]:
     print('\nMetryka: ' + metric_names[j])
     for i in range(len(estimators)):
-        print(f'{names[i]} {metric[i]}')
+        print(names[i] + ": " + str(format(metric[i] * 100, '.1f')))
     j += 1
 
 # Wyświetlanie wykresu
@@ -122,6 +122,7 @@ plot_knn = [mean_accuracy[2], mean_precision[2], mean_recall[2], mean_f1[2], mea
 plot_nb = [mean_accuracy[3], mean_precision[3], mean_recall[3], mean_f1[3], mean_accuracy[3]]
 plot_lr = [mean_accuracy[4], mean_precision[4], mean_recall[4], mean_f1[4], mean_accuracy[4]]
 plot_names = [*metric_names, metric_names[0]]
+
 
 fig = go.Figure(data=[go.Scatterpolar(r=plot_tree_results, theta=plot_names, name='Drzewo decyzyjne'),
                       go.Scatterpolar(r=plot_svm, theta=plot_names, name='SVM'),
