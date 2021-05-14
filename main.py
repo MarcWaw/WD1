@@ -1,9 +1,10 @@
 import pandas as pd
 import tqdm
-
 import plotly.graph_objects as go
 import plotly.offline as pyo
 import numpy as np
+import matplotlib.pyplot as plt
+
 from sklearn import preprocessing
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import SVC
@@ -15,13 +16,13 @@ from sklearn.ensemble import BaggingClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from imblearn.over_sampling import SMOTE
 from sklearn.metrics import roc_curve
-import matplotlib.pyplot as plt
 
-#Plotowanie ROC
+
+# Plotowanie ROC
 def plot_roc_curve(fpr, tpr, label=None):
     for i in range(len(label)):
         plt.plot(fpr[i], tpr[i], linewidth=2, label=label[i])
-    plt.plot([0, 1], [0, 1], 'k--') #przekątna wykresu
+    plt.plot([0, 1], [0, 1], 'k--')  # przekątna wykresu
     plt.xlabel('Odsetek prawdziwie pozytywnych (pełność)')
     plt.ylabel('Odsetek preawdziwie pozytywnych')
     plt.legend()
@@ -42,7 +43,7 @@ def prepare_input_data(remove_incomplete_rows=True):
     dataset = pd.read_csv('Data\cumulative_prepared.csv')
 
     X = dataset.drop(columns=['koi_disposition'])
-# ----------------------------------------------------------------------------------------
+    # ----------------------------------------------------------------------------------------
     y_string = dataset['koi_disposition']
     y_list = []
     for classification in y_string:
@@ -60,19 +61,15 @@ def prepare_input_data(remove_incomplete_rows=True):
 
 
 class estimator():
-
     Normalize = False
-    Oversample = True
 
-    def __init__(self, estimator, normalize, oversample, name):
+    def __init__(self, estimator, normalize, name):
         self.Normalize = normalize
-        self.Oversample = oversample
         self.Estimator = estimator
         self.Name = name
 
 
-def make_predictions(estimators, times_cross_validation):
-
+def make_predictions(estimators, times_cross_validation, oversampling_flag=True):
     precision_scores = []
     for i in range(len(metric_names)):
         precision_scores.append(np.zeros((times_cross_validation, len(estimators))))
@@ -87,24 +84,23 @@ def make_predictions(estimators, times_cross_validation):
     # Walidacja krzyżowa
     kf = KFold(n_splits=times_cross_validation, shuffle=True, random_state=1410)
 
-    # ---------------------------------------------------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------------------------------------------
     # Główna pętla
     iterator = 0
-    for train_index, test_index in tqdm.tqdm(kf.split(X_resampled)):
-        X_train, X_test = X_resampled.iloc[train_index], X_resampled.iloc[test_index]
-        y_train, y_test = y_resampled.iloc[train_index], y_resampled.iloc[test_index]
-        # -----------------------------------------------------------------------------------------------------------------
-        #Tablice do krzywych ROC
+    if oversampling_flag is True:
+        X_ap, y_ap = X_resampled, y_resampled
+    else:
+        X_ap, y_ap = X, y
+
+    for train_index, test_index in tqdm.tqdm(kf.split(X_ap)):
+        # -------------------------------------------------------------------------------------------------------------
+        # Tablice do krzywych ROC
         fpr_array = []
         tpr_array = []
         estimator_index = 0
         for est in estimators:
-            if est.Oversample:
-                X_train, X_test = X_resampled.iloc[train_index], X_resampled.iloc[test_index]
-                y_train, y_test = y_resampled.iloc[train_index], y_resampled.iloc[test_index]
-            else:
-                X_train, X_test = X.iloc[train_index], X_resampled.iloc[test_index]
-                y_train, y_test = y.iloc[train_index], y_resampled.iloc[test_index]
+            X_train, X_test = X_ap.iloc[train_index], X_ap.iloc[test_index]
+            y_train, y_test = y_ap.iloc[train_index], y_ap.iloc[test_index]
             # Czy występuje normalizacja parametrów?
             if est.Normalize:
                 X_train = min_max_scaler.fit_transform(X_train)
@@ -113,7 +109,7 @@ def make_predictions(estimators, times_cross_validation):
             clf = BaggingClassifier(base_estimator=est.Estimator, n_estimators=10, random_state=0).fit(
                 X_train, y_train.values.ravel())
             prediction = clf.predict(X_test)
-            prediction_roc = clf.predict_proba(X_test) #Predict do ROC
+            prediction_roc = clf.predict_proba(X_test)  # Predict do ROC
             # Zapisywanie wyników metryk
             precision_scores[0][iterator][estimator_index] = accuracy_score(y_test, prediction)
             precision_scores[1][iterator][estimator_index] = precision_score(y_test, prediction)
@@ -125,8 +121,8 @@ def make_predictions(estimators, times_cross_validation):
             tpr_array.append(tpr)
 
             estimator_index += 1
-        # -----------------------------------------------------------------------------------------------------------------
-        #Stworzenie plotów ROC
+        # -------------------------------------------------------------------------------------------------------------
+        # Stworzenie plotów ROC
         plot_roc_curve(fpr_array, tpr_array, names)
         plt.savefig(f'ROC_plots/ROC_fold{iterator + 1}.png')
         plt.clf()
@@ -147,7 +143,7 @@ def show_results():
         for i in range(len(estimators)):
             print(names[i] + ": " + str(format(metric[i] * 100, '.1f')))
         j += 1
-    # ---------------------------------------------------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------------------------------------------
     # Wyświetlanie wykresu
     plot_tree_results = [mean_accuracy[0], mean_precision[0], mean_recall[0], mean_f1[0], mean_accuracy[0]]
     plot_svm = [mean_accuracy[1], mean_precision[1], mean_recall[1], mean_f1[1], mean_accuracy[1]]
@@ -172,19 +168,19 @@ def show_results():
 
 X, y = prepare_input_data()
 
-estimators = [estimator(DecisionTreeClassifier(), False, True, 'Drzewa Decyzyjne'),
-              estimator(SVC(), False, True, 'SVM'),
-              estimator(KNeighborsClassifier(), False, True, 'kNN'),
-              estimator(GaussianNB(), False, True, 'Naiwny Bayes'),
-              estimator(LogisticRegression(solver='lbfgs', max_iter=1000), True, True, 'Regresja logistyczna')]
+estimators = [estimator(DecisionTreeClassifier(), False, 'Drzewa Decyzyjne'),
+              estimator(SVC(), False, 'SVM'),
+              estimator(KNeighborsClassifier(), False, 'kNN'),
+              estimator(GaussianNB(), False, 'Naiwny Bayes'),
+              estimator(LogisticRegression(solver='lbfgs', max_iter=1000), True, 'Regresja logistyczna')]
 
 metric_names = ['Accuracy', 'Precision', 'Recall', 'F1']
-times_cross_validation = 2
+times_cross_validation = 10
 
 names = []
 for est in estimators:
     names.append(est.Name)
 
-precision_scores = make_predictions(estimators, times_cross_validation)
+precision_scores = make_predictions(estimators, times_cross_validation, True)
 
 show_results()
