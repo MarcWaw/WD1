@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 import plotly.offline as pyo
 import numpy as np
 import matplotlib.pyplot as plt
+import Statistic
 
 from sklearn import preprocessing
 from sklearn.tree import DecisionTreeClassifier
@@ -181,6 +182,11 @@ names = []
 for est in estimators:
     names.append(est.Name)
 
+
+etimators_names = ['Drzewa Decyzyjne', 'SVM', 'kNN', 'Naiwny Bayes', 'Log regrsieon']
 precision_scores = make_predictions(estimators, times_cross_validation, True)
+precision_scores_accuracy = precision_scores[0]
+precision_scores_accuracy = np.transpose(precision_scores_accuracy)
+Statistic.t_student(estimators, etimators_names, precision_scores_accuracy, 0.05, True)
 
 show_results()
