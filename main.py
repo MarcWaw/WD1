@@ -17,6 +17,7 @@ from sklearn.ensemble import BaggingClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from imblearn.over_sampling import SMOTE
 from sklearn.metrics import roc_curve
+from tabulate import tabulate
 
 
 # Plotowanie ROC
@@ -61,7 +62,7 @@ def prepare_input_data(remove_incomplete_rows=True):
     return X, y
 
 
-class estimator():
+class Estimator():
     Normalize = False
 
     def __init__(self, estimator, normalize, name):
@@ -70,8 +71,8 @@ class estimator():
         self.Name = name
 
 
-def make_predictions(estimators, times_cross_validation, oversampling_flag=True):
-    precision_scores = []
+def make_predictions(oversampling_flag=True):
+    precision_scores=[]
     for i in range(len(metric_names)):
         precision_scores.append(np.zeros((times_cross_validation, len(estimators))))
 
@@ -138,19 +139,24 @@ def show_results():
     mean_precision = precision_scores[1].mean(0)
     mean_recall = precision_scores[2].mean(0)
     mean_f1 = precision_scores[3].mean(0)
-    j = 0
-    for metric in [mean_accuracy, mean_precision, mean_recall, mean_f1]:
-        print('\nMetryka: ' + metric_names[j])
-        for i in range(len(estimators)):
-            print(names[i] + ": " + str(format(metric[i] * 100, '.1f')))
-        j += 1
+
+    plot_tree_results = [estimators_names[0], mean_accuracy[0], mean_precision[0], mean_recall[0], mean_f1[0]]
+    plot_svm = [estimators_names[1], mean_accuracy[1], mean_precision[1], mean_recall[1], mean_f1[1]]
+    plot_knn = [estimators_names[2], mean_accuracy[2], mean_precision[2], mean_recall[2], mean_f1[2]]
+    plot_nb = [estimators_names[3], mean_accuracy[3], mean_precision[3], mean_recall[3], mean_f1[3]]
+    plot_lr = [estimators_names[4], mean_accuracy[4], mean_precision[4], mean_recall[4], mean_f1[4]]
+    plots = [plot_tree_results, plot_svm, plot_knn, plot_nb, plot_lr]
+    print(tabulate(plots, metric_names))
+    # estimators_names_arr  ay_in_array = np.expand_dims(np.array(estimators_names), axis=1)
+    # print(tabulate(np.concatenate((estimators_names_array_in_array, plots), axis=1), metric_names))
+    for j, metric in enumerate([mean_accuracy, mean_precision, mean_recall, mean_f1]):
+        print('\nMetryka: ' + metric_names[j] + '\n')
+        # for i in range(len(estimators)):
+        #     print(names[i] + ": " + str(format(metric[i] * 100, '.1f')))
+        print(f'{Statistic.t_student(estimators, estimators_names, precision_scores[j].T, 0.05, False)}\n\n')
+
     # -----------------------------------------------------------------------------------------------------------------
     # Wyświetlanie wykresu
-    plot_tree_results = [mean_accuracy[0], mean_precision[0], mean_recall[0], mean_f1[0], mean_accuracy[0]]
-    plot_svm = [mean_accuracy[1], mean_precision[1], mean_recall[1], mean_f1[1], mean_accuracy[1]]
-    plot_knn = [mean_accuracy[2], mean_precision[2], mean_recall[2], mean_f1[2], mean_accuracy[2]]
-    plot_nb = [mean_accuracy[3], mean_precision[3], mean_recall[3], mean_f1[3], mean_accuracy[3]]
-    plot_lr = [mean_accuracy[4], mean_precision[4], mean_recall[4], mean_f1[4], mean_accuracy[4]]
     plot_names = [*metric_names, metric_names[0]]
     fig = go.Figure(data=[go.Scatterpolar(r=plot_tree_results, theta=plot_names, name='Drzewo decyzyjne'),
                           go.Scatterpolar(r=plot_svm, theta=plot_names, name='SVM'),
@@ -159,34 +165,33 @@ def show_results():
                           go.Scatterpolar(r=plot_lr, theta=plot_names, name='Regresja Logistyczna')],
                     layout=go.Layout(title=go.layout.Title(text='Wyniki'),
                                      polar={'radialaxis': {'visible': True}},
-                                     showlegend=True
-                                     )
-                    )
+                                     showlegend=True))
     pyo.plot(fig)
 
 
-# HERE PROGRAM STARTS
+# ------------------==========================  HERE PROGRAM STARTS  ==========================------------------
 
 X, y = prepare_input_data()
 
-estimators = [estimator(DecisionTreeClassifier(), False, 'Drzewa Decyzyjne'),
-              estimator(SVC(), False, 'SVM'),
-              estimator(KNeighborsClassifier(), False, 'kNN'),
-              estimator(GaussianNB(), False, 'Naiwny Bayes'),
-              estimator(LogisticRegression(solver='lbfgs', max_iter=1000), True, 'Regresja logistyczna')]
+estimators = [Estimator(DecisionTreeClassifier(), False, 'Drzewa Decyzyjne'),
+              Estimator(SVC(), False, 'SVM'),
+              Estimator(KNeighborsClassifier(), False, 'kNN'),
+              Estimator(GaussianNB(), False, 'Naiwny Bayes'),
+              Estimator(LogisticRegression(solver='lbfgs', max_iter=1000), True, 'Regresja logistyczna')]
 
 metric_names = ['Accuracy', 'Precision', 'Recall', 'F1']
-times_cross_validation = 10
+times_cross_validation = 2
 
 names = []
 for est in estimators:
     names.append(est.Name)
 
 
-etimators_names = ['Drzewa Decyzyjne', 'SVM', 'kNN', 'Naiwny Bayes', 'Log regrsieon']
-precision_scores = make_predictions(estimators, times_cross_validation, True)
+estimators_names = ['Drzewa Decyzyjne', 'SVM', 'kNN', 'Naiwny Bayes', 'Log regrsieon']
+precision_scores = make_predictions(True)
 precision_scores_accuracy = precision_scores[0]
 precision_scores_accuracy = np.transpose(precision_scores_accuracy)
-Statistic.t_student(estimators, etimators_names, precision_scores_accuracy, 0.05, True)
+
+#print(Statistic.t_student(estimators, estimators_names, precision_scores_accuracy, 0.05, False))
 
 show_results()
