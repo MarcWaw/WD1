@@ -20,10 +20,10 @@ def show_results(estimators, scores):
     estimators_names = ['Drzewa Decyzyjne', 'SVM', 'kNN', 'Naiwny Bayes', 'Log regrsieon']
     metric_names = ['Accuracy', 'Precision', 'Recall', 'F1']
 
-    mean_accuracy = scores[0].mean(0)
-    mean_precision = scores[1].mean(0)
-    mean_recall = scores[2].mean(0)
-    mean_f1 = scores[3].mean(0)
+    mean_accuracy = scores[0].mean(1)
+    mean_precision = scores[1].mean(1)
+    mean_recall = scores[2].mean(1)
+    mean_f1 = scores[3].mean(1)
 
     plot_tree_results = [estimators_names[0], mean_accuracy[0], mean_precision[0], mean_recall[0], mean_f1[0]]
     plot_svm = [estimators_names[1], mean_accuracy[1], mean_precision[1], mean_recall[1], mean_f1[1]]
@@ -38,7 +38,7 @@ def show_results(estimators, scores):
         print('\nMetryka: ' + metric_names[j] + '\n')
         # for i in range(len(estimators)):
         #     print(names[i] + ": " + str(format(metric[i] * 100, '.1f')))
-        print(f'{Statistic.t_student(estimators, estimators_names, scores[j].T, 0.05, False)}\n\n')
+        print(f'{Statistic.t_student(estimators, estimators_names, scores[j], 0.05, False)}\n\n')
 
     # -----------------------------------------------------------------------------------------------------------------
     # Wyświetlanie wykresu
