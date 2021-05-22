@@ -26,7 +26,9 @@ for i in range(len(scores_names)):
     t_st, p_v = Statistic.t_student(clfs_names, scores[i], 0.05)
     t_student.append(t_st)
     p_value.append(p_v)
+    # print(scores[i])
 
-display.show_results(scores, clfs_names, scores_names)
 
+# display.show_results(scores, clfs_names, scores_names)
+display.GenerateLatexTable([scores], scores_names, t_student, clfs_names)
 
