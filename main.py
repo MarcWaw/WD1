@@ -15,7 +15,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import KFold
 from sklearn.ensemble import BaggingClassifier
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 from imblearn.over_sampling import SMOTE
 from sklearn.metrics import roc_curve
 from tabulate import tabulate
@@ -54,7 +54,7 @@ min_max_scaler = preprocessing.MinMaxScaler()
 times_cross_validation = 10
 kf = KFold(n_splits=times_cross_validation, shuffle=True, random_state=1410)
 
-scores_names = ['Acc', 'Prec', 'Rec', 'F1']
+scores_names = ['Acc', 'Prec', 'Rec', 'F1', 'ROC']
 scores = np.zeros((len(scores_names), len(clfs), times_cross_validation))
 
 for i, (train_index, test_index) in tqdm.tqdm(enumerate(kf.split(X_resampled))):
@@ -76,7 +76,8 @@ for i, (train_index, test_index) in tqdm.tqdm(enumerate(kf.split(X_resampled))):
 
         # Zapisywanie wyników metryk
         scores[:, estimator_index, i] = [accuracy_score(y_test, prediction), precision_score(y_test, prediction),
-                                         recall_score(y_test, prediction), f1_score(y_test, prediction)]
+                                         recall_score(y_test, prediction), f1_score(y_test, prediction),
+                                         roc_auc_score(y_test, prediction_roc[:, 1])]
 
         # ROC
         fpr, tpr, treshold = roc_curve(y_test, prediction_roc[:, 1])
