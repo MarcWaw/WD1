@@ -51,7 +51,7 @@ X_resampled, y_resampled = sm.fit_resample(X, y)
 min_max_scaler = preprocessing.MinMaxScaler()
 
 # Walidacja krzyżowa
-times_cross_validation = 2
+times_cross_validation = 10
 kf = KFold(n_splits=times_cross_validation, shuffle=True, random_state=1410)
 
 scores_names = ['Accuracy', 'Precision', 'Recall', 'F1']
