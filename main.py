@@ -54,7 +54,7 @@ min_max_scaler = preprocessing.MinMaxScaler()
 times_cross_validation = 10
 kf = KFold(n_splits=times_cross_validation, shuffle=True, random_state=1410)
 
-scores_names = ['Accuracy', 'Precision', 'Recall', 'F1']
+scores_names = ['Acc', 'Prec', 'Rec', 'F1']
 scores = np.zeros((len(scores_names), len(clfs), times_cross_validation))
 
 for i, (train_index, test_index) in tqdm.tqdm(enumerate(kf.split(X_resampled))):
