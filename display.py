@@ -10,15 +10,13 @@ def plot_roc_curve(fpr, tpr, label=None):
     for i in range(len(label)):
         plt.plot(fpr[i], tpr[i], linewidth=2, label=label[i])
     plt.plot([0, 1], [0, 1], 'k--')  # przekątna wykresu
-    plt.xlabel('Odsetek prawdziwie pozytywnych (pełność)')
-    plt.ylabel('Odsetek preawdziwie pozytywnych')
+    plt.xlabel('Odsetek fałszywie pozytywnych')
+    plt.ylabel('Odsetek prawdziwie pozytywnych (pełność)')
     plt.legend()
 
 
-def show_results(estimators, scores):
-    # Wyświetlanie wyników
-    estimators_names = ['Drzewa Decyzyjne', 'SVM', 'kNN', 'Naiwny Bayes', 'Log regrsieon']
-    metric_names = ['Accuracy', 'Precision', 'Recall', 'F1']
+def show_results(scores, estimators_names, metric_names):
+
 
     mean_accuracy = scores[0].mean(1)
     mean_precision = scores[1].mean(1)
@@ -32,13 +30,6 @@ def show_results(estimators, scores):
     plot_lr = [estimators_names[4], mean_accuracy[4], mean_precision[4], mean_recall[4], mean_f1[4]]
     plots = [plot_tree_results, plot_svm, plot_knn, plot_nb, plot_lr]
     print(tabulate(plots, metric_names))
-    # estimators_names_arr  ay_in_array = np.expand_dims(np.array(estimators_names), axis=1)
-    # print(tabulate(np.concatenate((estimators_names_array_in_array, plots), axis=1), metric_names))
-    for j, metric in enumerate([mean_accuracy, mean_precision, mean_recall, mean_f1]):
-        print('\nMetryka: ' + metric_names[j] + '\n')
-        # for i in range(len(estimators)):
-        #     print(names[i] + ": " + str(format(metric[i] * 100, '.1f')))
-        print(f'{Statistic.t_student(estimators, estimators_names, scores[j], 0.05, False)}\n\n')
 
     # -----------------------------------------------------------------------------------------------------------------
     # Wyświetlanie wykresu
