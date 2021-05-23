@@ -23,12 +23,13 @@ def show_results(scores, estimators_names, metric_names):
     mean_precision = scores[1].mean(1)
     mean_recall = scores[2].mean(1)
     mean_f1 = scores[3].mean(1)
+    mean_roc = scores[4].mean(1)
 
-    plot_tree_results = [estimators_names[0], mean_accuracy[0], mean_precision[0], mean_recall[0], mean_f1[0]]
-    plot_svm = [estimators_names[1], mean_accuracy[1], mean_precision[1], mean_recall[1], mean_f1[1]]
-    plot_knn = [estimators_names[2], mean_accuracy[2], mean_precision[2], mean_recall[2], mean_f1[2]]
-    plot_nb = [estimators_names[3], mean_accuracy[3], mean_precision[3], mean_recall[3], mean_f1[3]]
-    plot_lr = [estimators_names[4], mean_accuracy[4], mean_precision[4], mean_recall[4], mean_f1[4]]
+    plot_tree_results = [estimators_names[0], mean_accuracy[0], mean_precision[0], mean_recall[0], mean_f1[0], mean_roc[0]]
+    plot_svm = [estimators_names[1], mean_accuracy[1], mean_precision[1], mean_recall[1], mean_f1[1], mean_roc[1]]
+    plot_knn = [estimators_names[2], mean_accuracy[2], mean_precision[2], mean_recall[2], mean_f1[2], mean_roc[2]]
+    plot_nb = [estimators_names[3], mean_accuracy[3], mean_precision[3], mean_recall[3], mean_f1[3], mean_roc[3]]
+    plot_lr = [estimators_names[4], mean_accuracy[4], mean_precision[4], mean_recall[4], mean_f1[4], mean_roc[4]]
     plots = [plot_tree_results, plot_svm, plot_knn, plot_nb, plot_lr]
     print(tabulate(plots, metric_names))
 
@@ -80,7 +81,7 @@ def prepare_latex_data(t_student, clfs_names):
 
 def GenerateLatexTable(all_scores, dtn, t_student, clfs_names):
     t_s_arr = prepare_latex_data(t_student, clfs_names)
-    names = ['Score', 'Tree', 'SVM', 'kNN', 'GNB', 'RegLog', 'B:Tree', 'B:SVM', 'B:kNN', 'B:GNB', 'B:RegLog']
+    names = np.insert(clfs_names, 0, 'Score', axis=0)
     space_row = np.full(len(names), ' ', dtype=str)
     number_of_vals = all_scores[0].shape[1]  # 9
     number_of_data_sets = all_scores[0].shape[0]  # number of data sets
@@ -112,3 +113,26 @@ def GenerateLatexTable(all_scores, dtn, t_student, clfs_names):
     print("\\begin{tabular}{lcccccccccc}")
     print('Tabulate Latex:')
     print(tabulate(rows, headers='firstrow', tablefmt='latex'))
+
+
+def GenerateLatexPValuesTable(clfs_names, p_values):
+    names = np.insert(clfs_names, 0, '', axis=0)
+    for i in range(len(p_values)):
+        rows = [names]
+        for j in range(len(p_values[i])):
+            latex_array = [clfs_names[j]]
+            for k in range(len(p_values[i][j])):
+                if np.round(p_values[i][j][k], 2) == 0:
+                    latex_array.append('-')
+                elif j == k:
+                    latex_array.append('*')
+                else:
+                    latex_array.append(np.round(p_values[i][j][k], 3))
+            rows.append(latex_array)
+
+        table = texttable.Texttable()
+        table.set_cols_align(["c"] * len(rows))
+        table.set_deco(texttable.Texttable.HEADER | texttable.Texttable.VLINES)
+        print("\\\nbegin{tabular}{lcccccccccc}")
+        print('Tabulate Latex:')
+        print(tabulate(rows, headers='firstrow', tablefmt='latex'))

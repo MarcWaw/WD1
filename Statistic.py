@@ -32,7 +32,7 @@ def t_student(headers_array, scores, alfa=.05, print_result=False):
     t_statistic_table = tabulate(t_statistic_table, headers_array, floatfmt=".2f")
 
     p_value_table = np.concatenate((headers_array_in_array, p_value), axis=1)
-    p_value_table = tabulate(p_value_table, headers_array, floatfmt=".2f")
+    # p_value_table = tabulate(p_value_table, headers_array, floatfmt=".2f")
 
     advantage_table = tabulate(np.concatenate((headers_array_in_array, advantage), axis=1), headers_array)
 
@@ -43,4 +43,4 @@ def t_student(headers_array, scores, alfa=.05, print_result=False):
     #     f"t-statistic:\n {t_statistic_table} \n\np-value:\n {p_value_table} \n\nAdvantage:\n {advantage_table} \n\nStatistical "
     #     f"significance (alpha = {alfa}):\n {significance_table} \n\nStatistically significantly better:\n {stat_better_table}")
     # print('------------------------------------------------------------------')
-    return stat_better, p_value_table
+    return stat_better, p_value

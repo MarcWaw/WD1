@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 # Nazwy klasyfikatorów
 clfs_names = np.load(rf'Results\clfs_names.npy')
-# Nazwy metryk ['Accuracy', 'Precision', 'Recall', 'F1']
+# Nazwy metryk ['Accuracy', 'Precision', 'Recall', 'F1', 'ROC']
 scores_names = np.load(rf'Results\scores_names.npy')
 # 3-wymiarowa tablica z wynikami (metryka_dokładności, klasyfikator, fold walidacji krzyżowej)
 scores = np.load(rf'Results\scores.npy')
@@ -22,13 +22,14 @@ for i in range(times_cross_validation):
 
 t_student = []
 p_value = []
+
 for i in range(len(scores_names)):
     t_st, p_v = Statistic.t_student(clfs_names, scores[i], 0.05)
     t_student.append(t_st)
     p_value.append(p_v)
-    # print(scores[i])
 
 
-# display.show_results(scores, clfs_names, scores_names)
-display.GenerateLatexTable([scores], scores_names, t_student, clfs_names)
+display.show_results(scores, clfs_names, scores_names)
+# display.GenerateLatexTable([scores], scores_names, t_student, clfs_names)
+# display.GenerateLatexPValuesTable(clfs_names, p_value)
 
