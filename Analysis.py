@@ -1,4 +1,4 @@
-import display
+import Display
 import numpy as np
 import Statistic
 import matplotlib.pyplot as plt
@@ -16,7 +16,7 @@ times_cross_validation = scores.shape[2]
 for i in range(times_cross_validation):
     fpr = np.load(rf'Results\fpr_fold{i}.npy', allow_pickle=True).tolist()
     tpr = np.load(rf'Results\tpr_fold{i}.npy', allow_pickle=True).tolist()
-    display.plot_roc_curve(fpr, tpr, clfs_names)
+    Display.plot_roc_curve(fpr, tpr, clfs_names)
     plt.savefig(f'ROC_plots/ROC_fold{i + 1}.png')
     plt.clf()
 
@@ -28,8 +28,6 @@ for i in range(len(scores_names)):
     t_student.append(t_st)
     p_value.append(p_v)
 
-
-display.show_results(scores, clfs_names, scores_names)
-# display.GenerateLatexTable([scores], scores_names, t_student, clfs_names)
-# display.GenerateLatexPValuesTable(clfs_names, p_value)
-
+Display.show_results(scores, clfs_names, scores_names)
+Display.generate_latex_table([scores], scores_names, t_student, clfs_names)
+Display.generate_latex_p_values_table(clfs_names, p_value)

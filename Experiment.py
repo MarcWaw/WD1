@@ -1,12 +1,6 @@
 import pandas as pd
 import tqdm
-import plotly.graph_objects as go
-import plotly.offline as pyo
 import numpy as np
-import matplotlib.pyplot as plt
-import Statistic
-import display
-
 from sklearn import preprocessing
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import SVC
@@ -18,7 +12,6 @@ from sklearn.ensemble import BaggingClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 from imblearn.over_sampling import SMOTE
 from sklearn.metrics import roc_curve
-from tabulate import tabulate
 
 # Odczyt danych
 dataset = pd.read_csv('Data\\cumulative_prepared.csv')
@@ -86,8 +79,6 @@ for i, (train_index, test_index) in tqdm.tqdm(enumerate(kf.split(X_resampled))):
     np.save(rf'Results\fpr_fold{i}.npy', np.array(fpr_array, dtype="object"))
     np.save(rf'Results\tpr_fold{i}.npy', np.array(tpr_array, dtype="object"))
 
-
 np.save(rf'Results\clfs_names.npy', clfs_names)
 np.save(rf'Results\scores_names.npy', scores_names)
 np.save(rf'Results\scores.npy', scores)
-
