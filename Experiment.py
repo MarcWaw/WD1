@@ -60,8 +60,9 @@ for i, (train_index, test_index) in tqdm.tqdm(enumerate(kf.split(X_resampled))):
         y_train, y_test = y_resampled.iloc[train_index], y_resampled.iloc[test_index]
         # Czy występuje normalizacja parametrów?
         if clfs_names[estimator_index] == 'RegLog' or clfs_names[estimator_index] == 'B:RegLog':
-            X_train = min_max_scaler.fit_transform(X_train)
-            X_test = min_max_scaler.fit_transform(X_test)
+            min_max_scaler.fit(X_train)
+            X_train = min_max_scaler.transform(X_train)
+            X_test = min_max_scaler.transform(X_test)
         # Iteracja przez estymatory
         clf = esti.fit(X_train, y_train.values.ravel())
         prediction = clf.predict(X_test)
